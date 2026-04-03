@@ -1,32 +1,30 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  components/molecules/ProductCard.tsx
 //
-//  This molecule composes atoms (ProductImage, Typography, Badge, StarRating,
-//  Button) into a card layout.
+//  Novità rispetto alla versione RN:
 //
-//  ┌─────────────────────────────────┐
-//  │  UI props  → shape / style      │  owned by UI team
-//  │  UX props  → callbacks / state  │  owned by dev team, injected via hooks
-//  └─────────────────────────────────┘
+//  1. Layout responsive con media queries dichiarative in css.create()
+//     — impossibile con StyleSheet di React Native.
 //
-//  The component itself knows nothing about *how* cart/favorites work —
-//  that lives in useProductCatalog & useAddToCart.
+//  2. Hover state sulla card senza nessun JS:
+//     boxShadow: { default: ..., ':hover': ... }
 //
-//  ★ Visual spec: stories/molecules/ProductCard.stories.tsx
+//  3. html.img invece di <Image> con loading state gestito
+//     tramite attributo HTML loading="lazy".
+//
+//  La struttura delle props (UI vs UX) rimane identica — il contratto
+//  tra i due team non cambia.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Colors, Radii, Shadows, Spacing } from '../../tokens/tokens';
+import { css, html } from 'react-strict-dom';
+import { vars } from '../../tokens/tokens.stylex';
 import type { Product } from '../../types';
-import { Badge } from '../atoms/Badge';
+import { Badge, StarRating } from '../atoms/Badge';
 import { Button } from '../atoms/Button';
-import { ProductImage } from '../atoms/ProductImage';
-import { Typography } from '../atoms/Typography';
 
 export interface ProductCardProps {
   // ── UI ──────────────────────────────────────────────────────────────────────
-  /** 'vertical' = tall card (default); 'horizontal' = wide row card */
   layout?: 'vertical' | 'horizontal';
   showBadge?: boolean;
   showRating?: boolean;
@@ -38,6 +36,100 @@ export interface ProductCardProps {
   onToggleFavorite?: (productId: string) => void;
   onPress?: (product: Product) => void;
 }
+
+const styles = css.create({
+  card: {
+    backgroundColor: vars.colorSurface,
+    borderRadius: vars.radiusMd,
+    overflow: 'hidden',
+    cursor: 'pointer',
+    // ← Hover con box-shadow dichiarativo — zero JS, funziona su web
+    boxShadow: {
+      default: '0 2px 8px rgba(0,0,0,0.08)',
+      ':hover': '0 8px 24px rgba(0,0,0,0.14)',
+    },
+    transitionDuration: '200ms',
+  },
+  cardHorizontal: {
+    flexDirection: 'row',
+  },
+
+  // ← Media query dichiarativa in css.create() — non esiste in StyleSheet RN
+  cardResponsive: {
+    flexDirection: {
+      default: 'column',
+      '@media (min-width: 600px)': 'row',
+    },
+  },
+
+  imageVertical: {
+    width: '100%',
+    height: '180px',
+    objectFit: 'cover',           // proprietà CSS standard — non esiste in RN
+  },
+  imageHorizontal: {
+    width: '110px',
+    height: '110px',
+    objectFit: 'cover',
+    borderRadius: vars.radiusMd,
+    flexShrink: 0,
+  },
+
+  favoriteBtn: {
+    position: 'absolute',
+    top: vars.space2,
+    right: vars.space2,
+    backgroundColor: vars.colorSurface,
+    borderRadius: vars.radiusFull,
+    padding: vars.space1,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+    cursor: 'pointer',
+    fontSize: '16px',
+    lineHeight: '20px',
+    border: 'none',
+  },
+
+  body: {
+    padding: vars.space3,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space1,
+  },
+  bodyHorizontal: {
+    flex: 1,
+    paddingLeft: vars.space2,
+  },
+
+  title: {
+    fontSize: vars.fontSizeXl,
+    fontWeight: '600',
+    color: vars.colorTextPrimary,
+    // Truncate con CSS — in RN richiedeva numberOfLines su <Text>
+    display: '-webkit-box' as any,
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical' as any,
+    overflow: 'hidden',
+  },
+
+  footer: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: vars.space3,
+  },
+
+  price: {
+    fontSize: vars.fontSizePrice,
+    fontWeight: '800',
+    color: vars.colorAccent,
+  },
+
+  // Wrapper relativo per posizionare il bottone favorito
+  imageWrapper: {
+    position: 'relative',
+  },
+});
 
 export function ProductCard({
   layout = 'vertical',
@@ -52,99 +144,51 @@ export function ProductCard({
   const isHorizontal = layout === 'horizontal';
 
   return (
-    <Pressable
-      onPress={() => onPress?.(product)}
-      style={({ pressed }) => [
-        styles.card,
-        isHorizontal && styles.cardHorizontal,
-        pressed && styles.cardPressed,
-      ]}
-      accessibilityRole="button"
-      accessibilityLabel={`View ${product.title}`}
+    // html.article è semanticamente più corretto di <View> per una card prodotto
+    <html.article
+      onClick={() => onPress?.(product)}
+      aria-label={`Prodotto: ${product.title}`}
+      style={[styles.card, isHorizontal && styles.cardHorizontal]}
     >
-      {/* ── Image ──────────────────────────────────────────────────────────── */}
-      <ProductImage
-        uri={product.imageUrl}
-        size={isHorizontal ? { width: 110, height: 110 } : { width: '100%' as any, height: 180 }}
-        borderRadius={isHorizontal ? Radii.md : 0}
-        accessibilityLabel={product.title}
-      />
-
-      {/* ── Favorite button ─────────────────────────────────────────────────── */}
-      <Pressable
-        onPress={() => onToggleFavorite?.(product.id)}
-        style={styles.favoriteBtn}
-        hitSlop={8}
-        accessibilityLabel={product.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-      >
-        <Typography style={styles.heartIcon}>
+      <html.div style={styles.imageWrapper}>
+        {/* html.img invece di <Image> — loading="lazy" è gratis su web */}
+        <html.img
+          src={product.imageUrl}
+          alt={product.title}
+          loading="lazy"
+          style={isHorizontal ? styles.imageHorizontal : styles.imageVertical}
+        />
+        <html.button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite?.(product.id);
+          }}
+          aria-label={product.isFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
+          style={styles.favoriteBtn}
+        >
           {product.isFavorite ? '❤️' : '🤍'}
-        </Typography>
-      </Pressable>
+        </html.button>
+      </html.div>
 
-      {/* ── Body ──────────────────────────────────────────────────────────── */}
-      <View style={[styles.body, isHorizontal && styles.bodyHorizontal]}>
+      <html.div style={[styles.body, isHorizontal && styles.bodyHorizontal]}>
         {showBadge && <Badge label={product.category} />}
 
-        <Typography variant="heading3" numberOfLines={2} style={{ marginTop: Spacing.xs }}>
-          {product.title}
-        </Typography>
+        <html.span style={styles.title}>{product.title}</html.span>
 
-        {/* {showRating && <StarRating value={product.rating} style={{ marginTop: Spacing.xs }} />} */}
+        {showRating && <StarRating value={product.rating} />}
 
-        <View style={styles.footer}>
-          <Typography variant="price" color={Colors.accent}>
+        <html.div style={styles.footer}>
+          <html.span style={styles.price}>
             {product.currency} {product.price.toFixed(2)}
-          </Typography>
+          </html.span>
           <Button
-            label={isAddedToCart ? '✓ Added' : 'Add to cart'}
+            label={isAddedToCart ? '✓ Aggiunto' : 'Aggiungi'}
             variant={isAddedToCart ? 'secondary' : 'primary'}
             size="sm"
             onPress={() => onAddToCart?.(product)}
           />
-        </View>
-      </View>
-    </Pressable>
+        </html.div>
+      </html.div>
+    </html.article>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radii.md,
-    overflow: 'hidden',
-    ...Shadows.card,
-  },
-  cardHorizontal: {
-    flexDirection: 'row',
-  },
-  cardPressed: {
-    opacity: 0.93,
-  },
-  favoriteBtn: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: Radii.full,
-    padding: Spacing.xs,
-    ...Shadows.card,
-  },
-  heartIcon: {
-    fontSize: 16,
-    lineHeight: 20,
-  },
-  body: {
-    padding: Spacing.md,
-  },
-  bodyHorizontal: {
-    flex: 1,
-    paddingLeft: Spacing.sm,
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.md,
-  },
-});

@@ -12,13 +12,13 @@
 
 import React from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View,
 } from 'react-native';
-import { Colors, Spacing } from '../../tokens/tokens';
+import { Colors, Spacing } from '../../tokens/tokens.stylex';
 import type { Product } from '../../types';
 import { Typography } from '../atoms/Typography';
 import { CategoryFilter } from '../molecules/CategoryFilter';

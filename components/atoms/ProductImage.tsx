@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
-import { Colors, Radii } from '../../tokens/tokens';
+import { Colors, Radii } from '../../tokens/tokens.stylex';
 
 export interface ProductImageProps {
   // ── UI ──────────────────────────────────────────────────────────────────────

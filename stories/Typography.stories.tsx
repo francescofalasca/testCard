@@ -6,7 +6,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { View } from 'react-native';
 import { Typography } from '../components/atoms/Typography';
-import { Colors } from '../tokens/tokens';
+import { Colors } from '../tokens/tokens.stylex';
 
 const meta: Meta<typeof Typography> = {
   title: 'Atoms/Typography',

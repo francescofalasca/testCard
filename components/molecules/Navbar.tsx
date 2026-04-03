@@ -1,114 +1,118 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  components/molecules/Navbar.tsx
-//
-//  Composes Typography + Badge atoms into a top navigation bar.
-//  UI: title style, background, height
-//  UX: cartCount, onCartPress, onSearchPress
-//
-//  ★ Visual spec: stories/molecules/Navbar.stories.tsx
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React from 'react';
-import { Platform, Pressable, StatusBar, StyleSheet, View } from 'react-native';
-import { Colors, Shadows, Spacing } from '../../tokens/tokens';
-import { Typography } from '../atoms/Typography';
+import { css, html } from 'react-strict-dom';
+import { vars } from '../../tokens/tokens.stylex';
 
 export interface NavbarProps {
-  // ── UI ──────────────────────────────────────────────────────────────────────
   title?: string;
   backgroundColor?: string;
-
-  // ── UX ──────────────────────────────────────────────────────────────────────
   cartCount?: number;
   onCartPress?: () => void;
   onSearchPress?: () => void;
 }
 
-const STATUS_BAR_HEIGHT =
-  Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 44;
+const styles = css.create({
+  wrapper: {
+    backgroundColor: vars.colorPrimary,
+    // position: sticky è CSS standard — in RN non esiste, richiedeva workaround
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+  },
+  container: {
+    height: '56px',
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: vars.space3,
+    paddingRight: vars.space3,
+  },
+  title: {
+    fontSize: vars.fontSize2xl,
+    fontWeight: '700',
+    color: vars.colorTextInverse,
+  },
+  actions: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: vars.space2,
+  },
+  iconBtn: {
+    position: 'relative',
+    padding: vars.space1,
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '22px',
+    color: vars.colorTextInverse,
+    // Hover dichiarativo — no JS
+    opacity: {
+      default: 1,
+      ':hover': 0.75,
+    },
+  },
+  badge: {
+    position: 'absolute',
+    top: '0px',
+    right: '0px',
+    backgroundColor: vars.colorAccent,
+    borderRadius: vars.radiusFull,
+    minWidth: '16px',
+    height: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: '3px',
+    paddingRight: '3px',
+  },
+  badgeText: {
+    fontSize: '10px',
+    fontWeight: '700',
+    color: vars.colorTextInverse,
+  },
+});
 
 export function Navbar({
   title = 'Shop',
-  backgroundColor = Colors.primary,
   cartCount = 0,
   onCartPress,
   onSearchPress,
 }: NavbarProps) {
   return (
-    <View style={[styles.wrapper, { backgroundColor }]}>
-      <View style={styles.container}>
-        {/* Logo / title */}
-        <Typography variant="heading2" color={Colors.textInverse}>
-          {title}
-        </Typography>
-
-        {/* Actions */}
-        <View style={styles.actions}>
-          <Pressable
-            onPress={onSearchPress}
-            hitSlop={8}
+    // html.header è l'elemento semantico corretto per una navbar
+    <html.header style={styles.wrapper}>
+      <html.div style={styles.container}>
+        <html.span style={styles.title}>{title}</html.span>
+        <html.div style={styles.actions}>
+          <html.button
+            onClick={onSearchPress}
+            aria-label="Cerca"
             style={styles.iconBtn}
-            accessibilityLabel="Search"
           >
-            <Typography style={styles.icon}>🔍</Typography>
-          </Pressable>
-
-          <Pressable
-            onPress={onCartPress}
-            hitSlop={8}
+            🔍
+          </html.button>
+          <html.button
+            onClick={onCartPress}
+            aria-label={`Carrello, ${cartCount} articoli`}
             style={styles.iconBtn}
-            accessibilityLabel={`Cart, ${cartCount} items`}
           >
-            <Typography style={styles.icon}>🛒</Typography>
+            🛒
             {cartCount > 0 && (
-              <View style={styles.badge}>
-                <Typography variant="caption" color={Colors.textInverse} style={{ fontWeight: '700', fontSize: 10 }}>
+              <html.div style={styles.badge} aria-hidden={true}>
+                <html.span style={styles.badgeText}>
                   {cartCount > 99 ? '99+' : cartCount}
-                </Typography>
-              </View>
+                </html.span>
+              </html.div>
             )}
-          </Pressable>
-        </View>
-      </View>
-    </View>
+          </html.button>
+        </html.div>
+      </html.div>
+    </html.header>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    paddingTop: STATUS_BAR_HEIGHT,
-    ...Shadows.elevated,
-    zIndex: 10,
-  },
-  container: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  iconBtn: {
-    position: 'relative',
-    padding: Spacing.xs,
-  },
-  icon: {
-    fontSize: 22,
-  },
-  badge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: Colors.accent,
-    borderRadius: 999,
-    minWidth: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-});

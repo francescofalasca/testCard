@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
-import { Colors, Radii, Spacing } from '../../tokens/tokens';
+import { Colors, Radii, Spacing } from '../../tokens/tokens.stylex';
 import { Typography } from '../atoms/Typography';
 
 export interface CategoryFilterProps {

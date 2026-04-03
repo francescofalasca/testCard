@@ -1,0 +1,8 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   strict.css
+   Questo file è richiesto da react-strict-dom.
+   La direttiva @react-strict-dom viene sostituita con il CSS generato
+   durante i build web. Non va modificato manualmente.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@react-strict-dom;

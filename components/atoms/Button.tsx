@@ -1,119 +1,154 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  components/atoms/Button.tsx
-//  UI props:  variant, size, fullWidth, leftIcon, rightIcon
-//  UX props:  onPress, disabled, loading, accessibilityLabel
-//  ★ Visual spec lives in stories/atoms/Button.stories.tsx
+//
+//  Il guadagno più evidente del refactor:
+//
+//  PRIMA: lo stato "pressed" era gestito con Pressable + callback JS:
+//    <Pressable style={({ pressed }) => pressed && styles.pressed}>
+//
+//  ORA: è puramente dichiarativo in css.create():
+//    backgroundColor: {
+//      default: vars.colorAccent,
+//      ':hover': vars.colorAccentLight,   // gratis su web
+//      ':active': '#c73650',              // gratis su web + native
+//    }
+//
+//  Su native, RSD intercetta gli eventi touch e applica gli stili ':active'.
+//  Su web, sono veri pseudo-classi CSS — zero JavaScript.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
-import { Colors, Radii, Spacing } from '../../tokens/tokens';
+import { css, html } from 'react-strict-dom';
+import { vars } from '../../tokens/tokens.stylex';
 import type { ButtonSize, ButtonVariant } from '../../types';
-
-// ─── Re-export Typography under a cleaner alias for internal atom use ─────────
-// (avoids naming collision since this file also imports the token map)
-import { Typography as TypographyAtom } from './Typography';
 
 export interface ButtonProps {
   // ── UI ──────────────────────────────────────────────────────────────────────
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
 
   // ── UX ──────────────────────────────────────────────────────────────────────
   onPress?: () => void;
   disabled?: boolean;
   loading?: boolean;
   accessibilityLabel?: string;
-
-  // ── Shared ──────────────────────────────────────────────────────────────────
   label: string;
 }
 
-const sizeMap: Record<ButtonSize, { paddingVertical: number; paddingHorizontal: number; fontSize: number }> = {
-  sm: { paddingVertical: Spacing.xs,  paddingHorizontal: Spacing.sm, fontSize: 13 },
-  md: { paddingVertical: Spacing.sm,  paddingHorizontal: Spacing.md, fontSize: 15 },
-  lg: { paddingVertical: Spacing.md,  paddingHorizontal: Spacing.lg, fontSize: 16 },
-};
+// Stili statici — ottimizzati a build time da Babel
+const styles = css.create({
+  base: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',            // ← ignorato su native, fondamentale su web
+    userSelect: 'none',
+    transitionDuration: '150ms',  // ← solo web, ignorato su native
+  },
 
-const variantMap: Record<ButtonVariant, { bg: string; text: string; borderColor?: string }> = {
-  primary:   { bg: Colors.accent,     text: Colors.textInverse },
-  secondary: { bg: Colors.surface,    text: Colors.accent, borderColor: Colors.accent },
-  ghost:     { bg: 'transparent',     text: Colors.accent },
-};
+  // ── Variants ─────────────────────────────────────────────────────────────
+  primary: {
+    backgroundColor: {
+      default: vars.colorAccent,
+      ':hover':  vars.colorAccentLight,   // dichiarativo — no JS su web!
+      ':active': '#c73650',
+    },
+    color: vars.colorTextInverse,
+    borderWidth: 0,
+  },
+  secondary: {
+    backgroundColor: {
+      default: vars.colorSurface,
+      ':hover': vars.colorBorderLight,
+      ':active': vars.colorBorder,
+    },
+    color: vars.colorAccent,
+    borderWidth: '1.5px',
+    borderStyle: 'solid',
+    borderColor: vars.colorAccent,
+  },
+  ghost: {
+    backgroundColor: {
+      default: 'transparent',
+      ':hover': vars.colorBorderLight,
+      ':active': vars.colorBorder,
+    },
+    color: vars.colorAccent,
+    borderWidth: 0,
+  },
+
+  // ── Sizes ────────────────────────────────────────────────────────────────
+  sm: {
+    paddingTop: vars.space1,
+    paddingBottom: vars.space1,
+    paddingLeft: vars.space2,
+    paddingRight: vars.space2,
+    fontSize: vars.fontSizeSm,
+    borderRadius: vars.radiusFull,
+  },
+  md: {
+    paddingTop: vars.space2,
+    paddingBottom: vars.space2,
+    paddingLeft: vars.space3,
+    paddingRight: vars.space3,
+    fontSize: vars.fontSizeLg,
+    borderRadius: vars.radiusFull,
+  },
+  lg: {
+    paddingTop: vars.space3,
+    paddingBottom: vars.space3,
+    paddingLeft: vars.space4,
+    paddingRight: vars.space4,
+    fontSize: vars.fontSizeLg,
+    borderRadius: vars.radiusFull,
+  },
+
+  // ── States ───────────────────────────────────────────────────────────────
+  disabled: {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+    pointerEvents: 'none',
+  },
+  fullWidth: {
+    width: '100%',
+  },
+  label: {
+    fontWeight: '700',
+    color: 'inherit',
+  },
+});
 
 export function Button({
   variant = 'primary',
   size = 'md',
   fullWidth = false,
-  leftIcon,
-  rightIcon,
   onPress,
   disabled = false,
   loading = false,
   accessibilityLabel,
   label,
 }: ButtonProps) {
-  const sizeStyle   = sizeMap[size];
-  const variantStyle = variantMap[variant];
-
-  const containerStyle: ViewStyle = {
-    backgroundColor: disabled ? Colors.textDisabled : variantStyle.bg,
-    paddingVertical: sizeStyle.paddingVertical,
-    paddingHorizontal: sizeStyle.paddingHorizontal,
-    borderRadius: Radii.full,
-    borderWidth: variantStyle.borderColor ? 1.5 : 0,
-    borderColor: variantStyle.borderColor,
-    alignSelf: fullWidth ? 'stretch' : 'flex-start',
-    opacity: disabled ? 0.6 : 1,
-  };
-
+  // html.button invece di Pressable
+  // accessibilityRole="button" è implicito in html.button
   return (
-    <Pressable
-      onPress={onPress}
+    <html.button
+      onClick={onPress}                    // onClick invece di onPress
       disabled={disabled || loading}
-      accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityRole="button"
-      style={({ pressed }) => [
+      aria-label={accessibilityLabel ?? label}
+      aria-busy={loading}
+      style={[
         styles.base,
-        containerStyle,
-        pressed && styles.pressed,
+        styles[variant],
+        styles[size],
+        disabled && styles.disabled,
+        fullWidth && styles.fullWidth,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator color={variantStyle.text} size="small" />
-      ) : (
-        <View style={styles.inner}>
-          {leftIcon && <View style={styles.iconLeft}>{leftIcon}</View>}
-          <TypographyAtom
-            variant="body"
-            color={variantStyle.text}
-            style={{ fontWeight: '700', fontSize: sizeStyle.fontSize }}
-          >
-            {label}
-          </TypographyAtom>
-          {rightIcon && <View style={styles.iconRight}>{rightIcon}</View>}
-        </View>
-      )}
-    </Pressable>
+      <html.span style={styles.label}>
+        {loading ? '…' : label}
+      </html.span>
+    </html.button>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pressed: {
-    opacity: 0.75,
-    transform: [{ scale: 0.97 }],
-  },
-  inner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconLeft:  { marginRight: Spacing.xs },
-  iconRight: { marginLeft:  Spacing.xs },
-});

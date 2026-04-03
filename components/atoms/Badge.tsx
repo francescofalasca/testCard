@@ -1,12 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  components/atoms/Badge.tsx  &  StarRating.tsx
-//  Both are purely presentational — no UX logic.
+//  components/atoms/Badge.tsx  (include StarRating)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Colors, Radii, Spacing } from '../../tokens/tokens';
-import { Typography } from './Typography';
+import { css, html } from 'react-strict-dom';
+import { vars } from '../../tokens/tokens.stylex';
 
 // ── Badge ─────────────────────────────────────────────────────────────────────
 
@@ -16,59 +14,84 @@ export interface BadgeProps {
   backgroundColor?: string;
 }
 
-export function Badge({
-  label,
-  color = Colors.textInverse,
-  backgroundColor = Colors.accent,
-}: BadgeProps) {
+const badgeStyles = css.create({
+  root: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    paddingTop: '2px',
+    paddingBottom: '2px',
+    paddingLeft: vars.space2,
+    paddingRight: vars.space2,
+    borderRadius: vars.radiusFull,
+    backgroundColor: vars.colorAccent,  // default, overridden via style prop
+  },
+  label: {
+    fontSize: vars.fontSizeXs,
+    fontWeight: '700',
+    color: vars.colorTextInverse,
+  },
+});
+
+export function Badge({ label, color, backgroundColor }: BadgeProps) {
   return (
-    <View style={[styles.badge, { backgroundColor }]}>
-      <Typography variant="caption" color={color} style={{ fontWeight: '700' }}>
+    <html.div
+      style={[
+        badgeStyles.root,
+        backgroundColor ? css.create({ bg: { backgroundColor } }).bg : null,
+      ]}
+    >
+      <html.span
+        style={[
+          badgeStyles.label,
+          color ? css.create({ c: { color } }).c : null,
+        ]}
+      >
         {label}
-      </Typography>
-    </View>
+      </html.span>
+    </html.div>
   );
 }
 
 // ── StarRating ────────────────────────────────────────────────────────────────
 
 export interface StarRatingProps {
-  value: number;   // 0–5, supports decimals
+  value: number;
   maxStars?: number;
   size?: number;
 }
 
-export function StarRating({ value, maxStars = 5, size = 14 }: StarRatingProps) {
-  return (
-    <View style={styles.stars}>
-      {Array.from({ length: maxStars }).map((_, i) => {
-        const filled = i < Math.round(value);
-        return (
-          <Typography
-            key={i}
-            style={{ fontSize: size, lineHeight: size + 2 }}
-            color={filled ? Colors.starFilled : Colors.starEmpty}
-          >
-            ★
-          </Typography>
-        );
-      })}
-      <Typography variant="caption" color={Colors.textSecondary} style={{ marginLeft: Spacing.xs }}>
-        {value.toFixed(1)}
-      </Typography>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  badge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: Radii.full,
-    alignSelf: 'flex-start',
-  },
-  stars: {
+const starStyles = css.create({
+  container: {
+    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
+    gap: vars.space1,
+  },
+  starFilled: {
+    color: vars.colorStarFilled,
+  },
+  starEmpty: {
+    color: vars.colorStarEmpty,
+  },
+  rating: {
+    fontSize: vars.fontSizeXs,
+    color: vars.colorTextSecondary,
+    marginLeft: vars.space1,
   },
 });
+
+export function StarRating({ value, maxStars = 5 }: StarRatingProps) {
+  return (
+    <html.div style={starStyles.container}>
+      {Array.from({ length: maxStars }).map((_, i) => (
+        <html.span
+          key={i}
+          style={i < Math.round(value) ? starStyles.starFilled : starStyles.starEmpty}
+        >
+          ★
+        </html.span>
+      ))}
+      <html.span style={starStyles.rating}>{value.toFixed(1)}</html.span>
+    </html.div>
+  );
+}
